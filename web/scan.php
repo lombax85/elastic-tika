@@ -78,13 +78,17 @@ function getFileContentAsText($file) {
     return $res;
 }
 
-function curlPutFile($url_path_str, $file_path_str, $headers = array()) {
+function curlPutFile($url_path_str, $file_path_str, $headers = array(), $additionalOpts = array()) {
     $ch = curl_init();
 
     curl_setopt($ch, CURLOPT_URL, ''.$url_path_str.'');
     curl_setopt($ch, CURLOPT_PUT, 1);
 
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    foreach ($additionalOpts as $k => $v) {
+        curl_setopt($ch, $k, $v);
+    }
 
     $fh_res = fopen($file_path_str, 'r');
 
@@ -98,12 +102,20 @@ function curlPutFile($url_path_str, $file_path_str, $headers = array()) {
     return $curl_response_res;
 }
 
-function curlGetRequest($url_path_str) {
+function curlPutRequest($url_path_str, $data, $headers = array(), $additionalOpts = array()) {
     // create curl resource
     $ch = curl_init();
 
     // set url
     curl_setopt($ch, CURLOPT_URL, $url_path_str);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    foreach ($additionalOpts as $k => $v) {
+        curl_setopt($ch, $k, $v);
+    }
 
     //return the transfer as a string
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -117,14 +129,18 @@ function curlGetRequest($url_path_str) {
     return $output;
 }
 
-function curlPostRequest($url_path_str, $post_fields) {
+function curlGetRequest($url_path_str, $headers = array(), $additionalOpts = array()) {
     // create curl resource
     $ch = curl_init();
 
     // set url
     curl_setopt($ch, CURLOPT_URL, $url_path_str);
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    foreach ($additionalOpts as $k => $v) {
+        curl_setopt($ch, $k, $v);
+    }
 
     //return the transfer as a string
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -136,6 +152,50 @@ function curlPostRequest($url_path_str, $post_fields) {
     curl_close($ch);
 
     return $output;
+}
+
+function curlPostRequest($url_path_str, $post_fields, $headers = array(), $additionalOpts = array()) {
+    // create curl resource
+    $ch = curl_init();
+
+    // set url
+    curl_setopt($ch, CURLOPT_URL, $url_path_str);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    foreach ($additionalOpts as $k => $v) {
+        curl_setopt($ch, $k, $v);
+    }
+
+
+    //return the transfer as a string
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
+    // $output contains the output string
+    $output = curl_exec($ch);
+
+    // close curl resource to free up system resources
+    curl_close($ch);
+
+    return $output;
+}
+
+function createFileID($file) {
+    return md5($file);
+}
+
+function saveToElasticSearch($fileObject) {
+    $elasticPath = "http://elasticsearch:9200/documents/repository/".$fileObject->id;
+    $res = curlPutRequest(
+        $elasticPath,
+        json_encode($fileObject),
+        Array('Content-Type: application/json', 'Expect:'),
+        Array(CURLOPT_USERPWD =>  "elastic:changeme")
+    );
+
+    return $res;
 }
 
 
@@ -158,7 +218,14 @@ try {
 
             if ($newMetaData) {
                 $data = json_decode($newMetaData);
-                $data->content = getFileContentAsText($file);
+
+                $data->id = createFileID($file);
+
+                if (!$_REQUEST['showonly']) {
+                    $data->content = getFileContentAsText($file);
+                    saveToElasticSearch($data);
+                }
+
                 echo json_encode($data, JSON_PRETTY_PRINT);
 
             } else {
