@@ -1,0 +1,23 @@
+version: "3.2"
+
+services:
+  tika:
+    image: logicalspark/docker-tikaserver
+    ports:
+      - 9998:9998
+    extra_hosts:
+      - "dockerhost: 10.200.10.1"
+
+  php:
+    build:
+      context: ../web/
+      dockerfile: ./php/Dockerfile
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - type: bind
+        source: ../web
+        target: /var/www/public
+    extra_hosts:
+      - "dockerhost: 10.200.10.1"
