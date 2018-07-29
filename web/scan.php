@@ -198,6 +198,22 @@ function saveToElasticSearch($fileObject) {
     return $res;
 }
 
+function isValidFile($file) {
+
+    if (is_dir($file)) {
+        return false;
+    }
+
+    $info = pathinfo($file);
+    if(strpos($info['basename'], '.') === (int) 0) {
+        return false;
+    }
+
+
+
+    return true;
+}
+
 
 
 // ----------------------------------------------
@@ -210,9 +226,12 @@ error_reporting(E_ALL);
 $files = getDirContents('./files/');
 header('Content-Type: application/json');
 
+
+$count = 0;
+$limit = 10;
 try {
     foreach ($files as $file) {
-        if (compareFilesMetadata($file, $file) === false) {
+        if (isValidFile($file) && compareFilesMetadata($file, $file) === false) {
             // file differs, start updating index
             $newMetaData = getRemoteFileMetadataAlt($file);
 
@@ -232,7 +251,12 @@ try {
                 // pass to next file?
                 //throw new Exception("File Not Recognized");
             }
+
+            echo "Finished processing $file \n";
+            $count++;
         }
+        
+        if ($count >= $limit) break;
     }
 
 } catch (Exception $e) {
