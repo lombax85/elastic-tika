@@ -34,7 +34,7 @@ function curlGetRequest($url_path_str, $headers = array(), $additionalOpts = arr
 
 if ($_REQUEST['field'] && $_REQUEST['content'])
 {
-    $q = "http://elasticsearch:9200/documents/repository/_search?q=".$_REQUEST['field'].":".$_REQUEST['content']."&pretty=true";
+    $q = "http://elasticsearch:9200/documents/repository/_search?q=".rawurlencode($_REQUEST['field']).":".rawurlencode($_REQUEST['content'])."&pretty=true";
     $res = curlGetRequest(
         $q,
         Array('Content-Type: application/json', 'Expect:'),
@@ -45,8 +45,8 @@ if ($_REQUEST['field'] && $_REQUEST['content'])
 } else {
     ?>
 <form method="post" action="search.php">
-    <input type="text" name="field" value="Last-Author"/>
-    <input type="text" name="content" value="Fabio"/>
+    <input type="text" name="field" value="content"/>
+    <input type="text" name="content" value="Giuliano"/>
     <input type="submit" />
 
 </form>
