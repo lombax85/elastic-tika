@@ -209,6 +209,11 @@ function isValidFile($file) {
         return false;
     }
 
+    $allowedExtensions = array('pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx');
+    if (!in_array($info['extension'], $allowedExtensions)) {
+        return false;
+    }
+
 
 
     return true;
@@ -228,7 +233,7 @@ header('Content-Type: application/json');
 
 
 $count = 0;
-$limit = 10;
+$limit = 100;
 try {
     foreach ($files as $file) {
         if (isValidFile($file) && compareFilesMetadata($file, $file) === false) {
@@ -240,12 +245,12 @@ try {
 
                 $data->id = createFileID($file);
 
-                if (!$_REQUEST['showonly']) {
+                if (!isset($_REQUEST['showonly'])) {
                     $data->content = getFileContentAsText($file);
                     saveToElasticSearch($data);
                 }
 
-                echo json_encode($data, JSON_PRETTY_PRINT);
+                //echo json_encode($data, JSON_PRETTY_PRINT);
 
             } else {
                 // pass to next file?
@@ -255,7 +260,7 @@ try {
             echo "Finished processing $file \n";
             $count++;
         }
-        
+
         if ($count >= $limit) break;
     }
 
